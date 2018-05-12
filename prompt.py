@@ -1,3 +1,5 @@
+# coding: utf-8
+
 """
 Generate a customized PWD string for, e.g., an Unix prompt.
 

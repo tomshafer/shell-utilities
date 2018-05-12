@@ -1,3 +1,5 @@
+# coding: utf-8
+
 """
 Return a shell prompt decoration listing the current directory's Git status.
 This script is a rough clone of the Haskell implementation of
@@ -172,6 +174,29 @@ def parse_git_response(utf8_response):
     return [branch, n_untracked, n_staged, n_modified, n_ahead, n_behind]
 
 
+def with_color(text, color, bold=False):
+    """
+    Return a ZSH color-formatted string.
+
+    Arguments
+    ---------
+    text: str
+        text to be colored
+    color: str
+        ZSH color code
+    bold: bool
+        whether or not to make the text bold
+
+    Returns
+    -------
+    str
+        string with ZSH color-coded text
+    """
+    color_fmt = '$fg_bold[{:s}]' if bold else '$fg[{:s}]'
+    return '%{{{:s}%}}{:s}%{{$reset_color%}}'.format(
+        color_fmt.format(color), text)
+
+
 if __name__ == '__main__':
     args = docopt(__doc__)
     query = query_git()
@@ -185,13 +210,13 @@ if __name__ == '__main__':
     str_behind = ('↓%d' % behind) if behind else ''
 
     if untracked + staged + modified == 0:
-        str_status = '$fg_bold[green]✓${reset_color}'
+        str_status = with_color('✓', 'green', True)
     else:
         str_status = '{}{}{}'.format(
-            '${fg_bold[magenta]}•%d${reset_color}' % staged if staged else '',
-            '${fg_bold[blue]}+%d${reset_color}' % modified if modified else '',
+            with_color('•%d' % staged if staged else '', 'magenta', True),
+            with_color('+%d' % modified if modified else '', 'blue', True),
             '...' if untracked else '')
 
     sys.stdout.write(' ({}{}{}|{})'.format(
-        '${fg_bold[magenta]}%s${reset_color}' % branch_name,
-        str_ahead, str_behind, str_status))
+        with_color(branch_name, 'magenta', True),
+        str_behind, str_ahead, str_status))
