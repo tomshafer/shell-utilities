@@ -1,27 +1,45 @@
 # coding: utf-8
 
-"""
-Generate a customized PWD string for, e.g., an Unix prompt.
-
-Usage: prompt.py [--debug] [--no-tilde] [-n FULL_PATHS] [PATH]
-
-Options:
-    -n FULL_PATHS   Number of directories to keep full width [default: 1]
-
-    --debug         Print the raw PATH to stderr
-    --no-tilde      Do not compress $HOME to '~'
-
-If PATH is specified, then it is truncated and returned. If PATH is
-unspecified, then os.getcwd() is called to find the working directory.
-"""
-
+import argparse as ap
 import os
 import re
 import sys
-from docopt import docopt
 
 
-def truncated_path(path=None, home_tilde=True, n_full=1):
+def parse_args():
+    """Provide a dependency-free command-line interface."""
+    p = ap.ArgumentParser(
+        description="Generate a customized PWD string for a Unix prompt.",
+        epilog=(
+            "If PATH is specified, then it is truncated and returned. "
+            "If PATH is unspecified, then os.getcwd() is called to find "
+            "the working directory."
+        ),
+    )
+    p.add_argument(
+        "-n",
+        metavar="FULL_PATHS",
+        type=int,
+        default=1,
+        help="Number of directories to keep full width",
+    )
+    p.add_argument(
+        "--debug",
+        dest="DEBUG",
+        action="store_true",
+        help="Print the raw PATH to stderr",
+    )
+    p.add_argument(
+        "--no-tilde",
+        dest="NO_TILDE",
+        action="store_true",
+        help="Do not compress $HOME to '~'",
+    )
+    p.add_argument("PATH", type=str, nargs="?", default=os.getcwd())
+    return p.parse_args()
+
+
+def truncated_path(path=None, home_tilde=True, n_full=1, debug=False):
     """
     Return the PWD string, optionally with the user's home directory truncated
     to a tilde and/or a number of subdirectory names truncated.
@@ -40,28 +58,27 @@ def truncated_path(path=None, home_tilde=True, n_full=1):
     string
         the reconstructed path
     """
-    path = args['PATH']
     if path is None:
         path = os.getcwd()
-
-    if args['--debug']:
+    if debug:
         sys.stderr.write(path)
-
     if home_tilde:
-        path = re.sub(os.environ['HOME'], '~', path)
-
+        path = re.sub(os.environ["HOME"], "~", path)
     if n_full > 0:
-        pieces = path.split('/')
+        pieces = path.split("/")
         for i in range(len(pieces)):
             j = len(pieces) - i - 1
             if i >= n_full and pieces[j]:
                 pieces[j] = pieces[j][0]
+    return "/".join(pieces)
 
-    return '/'.join(pieces)
 
-
-if __name__ == '__main__':
-    args = docopt(__doc__)
-    sys.stdout.write(truncated_path(
-        home_tilde=not args['--no-tilde'],
-        n_full=int(args['-n'])))
+if __name__ == "__main__":
+    args = parse_args()
+    sys.stdout.write(
+        truncated_path(
+            home_tilde=not args.NO_TILDE,
+            n_full=args.n,
+            debug=args.DEBUG
+        )
+    )
